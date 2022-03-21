@@ -1,11 +1,9 @@
-// -- this file returns the data outlined in typeDefs.
-const { User, Thought } = require("../models");
 const { AuthenticationError } = require("apollo-server-express");
+const { User, Thought } = require("../models");
 const { signToken } = require("../utils/auth");
 
 const resolvers = {
   Query: {
-    // parent only a placeholder variable, need to use second param
     me: async (parent, args, context) => {
       if (context.user) {
         const userData = await User.findOne({ _id: context.user._id })
@@ -18,14 +16,12 @@ const resolvers = {
 
       throw new AuthenticationError("Not logged in");
     },
-    // get all users
     users: async () => {
       return User.find()
         .select("-__v -password")
         .populate("thoughts")
         .populate("friends");
     },
-    // get a user by username
     user: async (parent, { username }) => {
       return User.findOne({ username })
         .select("-__v -password")
@@ -40,12 +36,13 @@ const resolvers = {
       return Thought.findOne({ _id });
     },
   },
+
   Mutation: {
     addUser: async (parent, args) => {
       const user = await User.create(args);
       const token = signToken(user);
 
-      return user;
+      return { token, user };
     },
     login: async (parent, { email, password }) => {
       const user = await User.findOne({ email });
@@ -102,13 +99,13 @@ const resolvers = {
       if (context.user) {
         const updatedUser = await User.findOneAndUpdate(
           { _id: context.user._id },
-          // addtoset prevents dupes
           { $addToSet: { friends: friendId } },
           { new: true }
         ).populate("friends");
 
         return updatedUser;
       }
+
       throw new AuthenticationError("You need to be logged in!");
     },
   },
